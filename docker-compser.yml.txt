@@ -1,0 +1,9 @@
+services:
+  node:
+    image: "nodejs:latest"
+    working_dir: /app
+    volumes:
+      - /app/:/var/www/html/propsoft-client-side
+    ports:
+      - "3000:3000"
+    command: "npm run dev"
