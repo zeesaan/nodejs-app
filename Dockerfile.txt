@@ -1,4 +1,4 @@
-# build environment
+# build environment from nodejs
 FROM node:18 as build
 WORKDIR /app
 mkdir /app/dist
