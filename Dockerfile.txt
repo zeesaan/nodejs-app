@@ -1,6 +1,7 @@
 # build environment
 FROM node:18 as build
 WORKDIR /app
+mkdir /app/dist
 
 ENV PATH /app/node_modules/.bin:$PATH
 COPY package.json /app/
