@@ -1,11 +1,11 @@
-version: '3.8'
-
-services:
-  node:
-    image: "nodejs:latest"
-    working_dir: /app
-    volumes:
-      - /app/:/var/www/html/propsoft-client-side
+version: "3.8"
+services: 
+  frontend:
+    container_name: propsoft-client-side
+    #build: .
+    image: 192.168.226.131/propsoft-client-side/nodejs
+    restart: always #change if you don't want your container restarting
+    environment:
+      - NODE_ENV=production
     ports:
-      - "3000:3000"
-    command: "npm run dev"
+       - "3000:3000"
