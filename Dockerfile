@@ -2,6 +2,7 @@
 FROM node:18-alpine AS base
 
 WORKDIR /app
+RUN rm -rf tmp
 
 # ---------- Builder ----------
 # Creates:
@@ -11,14 +12,14 @@ FROM base AS builder
 
 COPY package.json .
 
-RUN npm install
+RUN npm install --production
 
 COPY . .
 
 RUN npm run build
 
 #Remove dev dependencies
-RUN npm prune --production 
+#RUN npm prune --production 
 
 # ---------- Release ----------
 FROM base AS release
