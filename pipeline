@@ -1,0 +1,90 @@
+pipeline {
+    agent any
+    
+    environment {
+        DOCKER_USERNAME="admin"
+        DOCKER_PASSWORD="Harbor12345"
+        DOCKER_IMAGE_NAME="frontend"
+        DOCKER_IMAGE_TAG = "latest"
+        DOCKER_NAME = "propsoft-frontend_app_1"
+        HARBOR_URL="https://192.168.226.131"
+        HARBOR_REPO = "192.168.226.131"
+        HARBOR_REPOSITORY="propsoft-frontend-side"
+		DOCKERFILE_PATH = './Dockerfile'
+		SSH_KEY = "$HOME/.ssh/id_rsa"
+        SSH_USER = 'devops'
+        REMOTE_HOST = '192.168.226.133'
+        REMOTE_DIR = '/var/www/html/propsoft-frontend'
+        ENV_CONF       = "production"
+        DEV_USER       = "root"
+        API_URI        = "http://api.apexsofttest.com"
+        SOCKET_URI     = "https://uatsocket.propsoft.ai"
+        GOOGLE_MAP_KEY = 'AIzaSyCvZP-WrMlm7q992GOuL1reVbya6EqvEJY'
+        
+        
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                // Checkout source code from Git repository
+                git branch: 'main', credentialsId: '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', url: 'https://github.com/zeesaan/nodejs-app.git'
+            }
+        }
+        
+        
+        stage('Change env') {
+            steps {
+                script {
+                    sh '''
+                        echo "Updating .env file with Jenkins environment variables..."
+                        cp .env.example .env
+                        sed -i "s|^API_URI=.*|API_URI=${API_URI}|" .env
+                        sed -i "s|^SOCKET_URI=.*|SOCKET_URI=${SOCKET_URI}|" .env
+                        sed -i "s|^GOOGLE_MAP_KEY=.*|GOOGLE_MAP_KEY=${GOOGLE_MAP_KEY}|" .env
+                        cat .env
+                    '''
+                }
+            }
+        }
+    
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    docker.build("${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}", "-f ${DOCKERFILE_PATH} .")
+                }
+            }
+        }
+        
+        stage('Tag Docker Image') {
+            steps {
+                script {
+                    sh "docker tag ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} ${HARBOR_REPO}/propsoft-frontend-side/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+                }
+            }
+        }
+        
+        stage('Push to Harbor') {
+            steps {
+                script {
+                    docker.withRegistry("${HARBOR_URL}", 'harbor_password') {
+                        
+                      docker.image("$HARBOR_REPO/propsoft-frontend-side/$DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG").push()
+                    }
+                }
+            }
+        }
+        
+         
+        stage('Deploy to Production Server') {
+            steps {
+                script {
+                    // SSH into production server
+                    sshagent(['node1-ssh-credentials-id']) {
+                        sh "ssh devops@$REMOTE_HOST 'docker pull ${HARBOR_REPO}/$DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG && docker stop propsoft-frontaned_app_1 && docker rm propsoft-frontaned_app_1 && docker run -d --name propsoft-frontaned_app_1 ${HARBOR_REPO}/${HARBOR_REPOSITORY}/$DOCKER_IMAGE_NAME:$DOCKER_IMAGE_TAG'"
+                    }
+                }
+            }
+        }
+    }
+}
